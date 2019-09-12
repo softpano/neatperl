@@ -4,6 +4,9 @@ Prettyprinter for Perl
  based of "fuzzy" determination of nesting level 
   Nikolai Bezroukov, 2019,   Licensed under Perl Artistic license
 Version 0.4 (Sept 3, 2019)
+
+For more complete and, most probably, more current info http://www.softpanorama.org/Utilities/Beautifiers/neatperl.shtml
+
 Pretty printer Neatperl can be called a "fuzzy" pretty-printer. If does not perform full lexical analysis (which for bash is impossible  as BASH does not have lexical level defined). Instead it relies on analysis of a limited context of each line (prefix and suffix) to "guess" correct nesting level.  It does not perform any reorganization of the text other then re-indentation. 
   For reasonable bash style typically found in production scripts the results are quite satisfactory. Of course, it will not work for compressed or obscured code.
 This is a relatively novel approach as typically prettyprinter attempt to implement full lexical analysis of the language with some elements of syntax analysis, see for example my (very old) NEATPL pretty printer ( http://www.softpanorama.org/Articles/Oldies/neatpl.pdf  ) -- one of the first first program that I have written that got widespread use,  or Perltidy. 
