@@ -1,9 +1,9 @@
 # neatperl
 Prettyprinter for Perl
-  Neatperl -- a simple bash prettyprinter 
- based of "fuzzy" determination of nesting level 
-  Nikolai Bezroukov, 2019,   Licensed under Perl Artistic license
-Version 0.4 (Sept 3, 2019)
+
+Neatperl  a simple Perl  prettyprinter based of "fuzzy" determination of nesting level 
+ 
+Nikolai Bezroukov, 2019,   Licensed under Perl Artistic license 
 
 For more complete and, most probably, more current info http://www.softpanorama.org/Utilities/Beautifiers/neatperl.shtml
 
