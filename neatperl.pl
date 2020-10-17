@@ -72,7 +72,7 @@
    }
    $use_git_repo='';
    $OS=$^O; # $^O is built-in Perl variable that contains OS name
-   $HOME=($OS eq 'cygwin' ) ? "/cygdrive/f/_Scripts" : ENV{'HOME'};  # $HOME/Archive is used for backups
+   $HOME=($OS eq 'cygwin' ) ? "/cygdrive/f/_Scripts" : $ENV{'HOME'};  # $HOME/Archive is used for backups
 
    $LOG_DIR="/tmp/$SCRIPT_NAME";
 
