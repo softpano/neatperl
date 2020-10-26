@@ -3,8 +3,9 @@
 #:: Nikolai Bezroukov, 2019.
 #:: Licensed under Perl Artistic license
 #::
-#:: The key idea of fuzzy reformating is to use only prefix and syffic of each line for  determining the nesting level.
-#:: In most cases this is sucessful approach and in a few case when it is not it is easovy corrected using pragma %NEST
+#:: This is a fuzzy prettyprinter in a sense that the netsting level is determined using heuristic methods:
+#::    Only prefix and suffix of the line are analysed to determine the nesting level.
+#::    In most cases this is sucessful approach and in a few case when it is not it is easovy corrected using pragma %NEST
 #:: For example
 #::    #%NEST=2
 #::
@@ -20,8 +21,8 @@
 #::
 #::    -v -- display version
 #::    -h -- this help
-#::    -t number -- size of tab (emulated with spaces)
-#::    -f  -- written formatted test into the same files creating backup
+#::    -t number -- size of tab (only spaces are used for indentation in NeatPerl, no tabs)
+#::    -f  -- written formatted test into the same file creating backup
 #::    -w --  provide additional warnings about non-balance of quotes and round parentheses
 #::
 #::--- PARAMETERS:
@@ -49,19 +50,19 @@
 # 0.81  2019/10/08  BEZROUN    Some refactoring to reduce maximum nesting level
 # 1.00  2019/10/09  BEZROUN    Testing completed and was sucessful.
 # 1.10  2019/10/10  BEZROUN    allowed tail commments like:  }else{ #This is abad  style of commenting but it happened
-#=========================== START =============================================================================================
-#=== Start
+# 1.20  2019/10/14  BEZROUN    Simple XREF table is added -- option -X
+# 1.30  2020/10/26  BEZROUN    A couple of minor changes
+#START ======================================================================================================================
    use v5.10;
-#  use Modern::Perl;
    use warnings;
    use strict 'subs';
    use feature 'state';
    use Getopt::Std;
 
-   $VERSION='1.10';
+   $VERSION='1.30';
    $debug=0; # 0 production mode 1 - development/testing mode. 2-9 debugging modes
    $breakpoint=-1;
-   $STOP_STRING=''; # In debug mode gives you an ability to switch trace on any error message.
+   $STOP_STRING=''; # In debug mode gives you an ability to switch trace on any type of error message for example S (via hook in logme).
 
 
 # INTERESTING, VERY NEAT IDEA: you can switch on tracing from particular line of source ( -1 to disable)
@@ -71,12 +72,10 @@
       $SCRIPT_NAME=substr($SCRIPT_NAME,0,$dotpos);
    }
    $use_git_repo='';
-   $OS=$^O; # $^O is built-in Perl variable that contains OS name
-   $HOME=($OS eq 'cygwin' ) ? "/cygdrive/f/_Scripts" : $ENV{'HOME'};  # $HOME/Archive is used for backups
+   #$OS=$^O; # $^O is built-in Perl variable that contains OS name
+   $HOME=$ENV{'HOME'};  # $HOME/Archive is used for backups
 
-   $LOG_DIR="/tmp/$SCRIPT_NAME";
-
-
+   $LOG_DIR='/tmp/'.ucfirst($SCRIPT_NAME);
    $tab=3;
    $write_formatted=0; # flag that dremines if we need to write the result into the file supplied.
    $write_pipe=0;
@@ -87,7 +86,7 @@
    logme('D',1,2); # E and S to console, everything to the log.
    banner($LOG_DIR,$SCRIPT_NAME,'Simple Perl prettyprinter',30); # Opens SYSLOG and print STDERRs banner; parameter 4 is log retention period
    get_params(); # At this point debug  flag can be reset
-    if( $debug>0 ){
+   if( $debug>0 ){
       logme('D',2,2); # Max verbosity
       print STDERR "ATTENTION!!! $SCRIPT_NAME is working in debugging mode $debug with autocommit of source to $HOME/Archive\n";
       autocommit("$HOME/Archive",$use_git_repo); # commit source archive directory (which can be controlled by GIT)
@@ -98,20 +97,20 @@
 #
    $NewNest=$CurNest=$MaxNest=0; # variables for nesting level
    $CodeLinesNo=$TotalSubNo=$TotalBlockNo=0; # code metrics
-   #$top=0; $stack[$top]='';
    $lineno=$fline=0; # fline is the last line number in formatted code array
    $here_delim="\n"; # this impossible combination means uninitialised
    $noformat=0;
    $InfoTags='';
    $nest_corrections=0;
+   @SourceText=<STDIN>; # slurp source
 #
 # MAIN LOOP
 #
-   while($line=<STDIN> ){
+   for( $lineno=0; $lineno<@SourceText; $lineno++  ){
+      $line=$SourceText[$lineno];
       $offset=0;
       chomp($line);
       $intact_line=$line;
-      $lineno++;
       if( $lineno == $breakpoint ){
          $DB::single = 1
       }
@@ -186,6 +185,7 @@
       }
       $CodeLinesNo++;
       if( $line =~ /^sub\s+(\w+)/ ){
+         $SubList{$1}=$lineno;
          $TotalSubNo++;
          if( $CurNest>0) {
             $InfoTags='} ?';
@@ -244,6 +244,7 @@
 # Epilog
 #
    code_metric();
+   xref();
    if( $CurNest !=0 || $nest_corrections > 0 ){
       ( $write_formatted >0 || $write_pipe > 0  ) && logme('S',"Writing of formatted code is blocked due to errors detected");
       logme('T',"Script might have errors; diagnistics follows."); # this terminates script.
@@ -289,16 +290,27 @@ sub process_line
       }
       print STDERR "$prefix | $spaces$line\n";
       if( $write_formatted > 0 ){
-         $formatted[$fline++]="$spaces$line\n";
+         $FormattedSource[$fline++]="$spaces$line\n";
       }
       $CurNest=$NewNest;
       if( $noformat==0 ){ $InfoTags='' }
 }
 sub code_metric
 {
+my @subs_list;
+      $lineno--;
       out("\nSOURCE CODE STATS:\n\tTotal lines $lineno; Of them without comments: $CodeLinesNo; Max nesting: $MaxNest; Internal subs: $TotalSubNo; Blocks: $TotalBlockNo\n");
       if( $MaxNest>4) {
          out("Excessive nesting, consider refactoring");
+      }
+      out("\nLIST OF SUBROUTNES\n");
+      my $i=0;
+      foreach $s (keys(%SubList)) {
+         $sub_list[$i++]=$s.': '.$SubList{$s};
+      }
+      @sub_list=sort @sub_list;
+      for( $i=0; $i<@sub_list; $i++ ){
+       out("\t$i $sub_list[$i]");
       }
 }
 sub correct_nesting
@@ -329,7 +341,7 @@ sub correct_nesting
       }
 }
 
-sub  write_formatted_code
+sub write_formatted_code
 {
       if( -f $fname ){
          chomp($timestamp=`date +"%y%m%d_%H%M"`);
@@ -341,7 +353,7 @@ sub  write_formatted_code
       }
       if( $write_formatted ){
          open (SYSFORM,'>',"$fname.neat") || abend(__LINE__,"Cannot open file $fname.neat for writing");
-         print SYSFORM @formatted;
+         print SYSFORM @FormattedSource;
          close SYSFORM;
          `perl -cw $fname.neat`;
          if(  $? > 0 ){
@@ -352,12 +364,64 @@ sub  write_formatted_code
             logme('T',"Source is now reformatted"); # this terminates script.
          }
       }elsif( $write_pipe ){
-         print @formatted;
+         print @FormattedSource;
          logme('T',"Source is now reformatted"); # this terminates script.
       }
       logme('T',"Normail completion of the program"); # this terminates script.
-
 }
+sub xref
+{
+my $output_file="$LOG_DIR/$fname.xref";
+my ($line,$i,$k,$var, %dict, %type, @xref_table);
+   open (SYSFORM,'>',$output_file ) || abend(__LINE__,"Cannot open file $output_file for writing");
+   for( $i=0; $i<@SourceText; $i++ ){
+      $line=$SourceText[$i];
+      next if (substr($line,0,1) eq '#' || $line=~/(\s+)\#/ );
+      chomp($line);
+      while( ($k=index($line,'$'))>-1 ){
+         $line=substr($line,$k+1);
+         next unless( $line=~/^(\w+)/ );
+         next if( $1 eq '_' || $1 =~[1-9] );
+         $k+=length($1)+1;
+         $var='$'.$1;
+         if($line=~/\w+\s*=\s*[+-]?\d+/ ){
+            unless(exists($type{$var})) {$type{$var}='int';}
+         }elsif( $line=~/\w+\s*[+-=<>!]?=\s*(index|length)/ ){
+            unless( exists($type{$var}) ) {$type{$var}='int';}
+          }elsif( $line=~/\w+\s*[+-=<>!]?=\s*[+-]?\d+/ ){
+            unless( exists($type{$var}) ) {$type{$var}='int';}
+         }elsif( $line=~/\w+\s*\[.+?\]?\s*(\$\w+)/ && exists($type{$1}) && $type{$1} eq 'int' ) {
+            unless( exists($type{$var}) ) {$type{$var}='int';};
+         }elsif( $line=~/\w+\s*\[.+?\]?\s*[+-=<>!]=\s*\d+/ ){
+            #Array
+            unless( exists($type{$var}) ) {$type{$var}='int';}
+         }elsif( $line=~/\w+\s*\{.+?\}\s*[+-=<>!]?=\s*\d+/ ){
+            #Hash
+            unless( exists($type{$var}) ) {$type{$var}='int';}
+         }
+
+         if( exists($dict{$var}) ){
+            $dict{$var}.=', '.$i;
+         }else{
+           $dict{$var}.=$i;
+         }
+     }
+   }
+   print STDERR "\n\nCROSS REFERENCE TABLE\n\n";
+   $i=0;
+   foreach $var (keys(%dict)) {
+      $prefix=( exists($type{$var}) ) ? $type{$var} : 'str';
+      $xref_table[$i]="$prefix $var $dict{$var}\n";
+      $i++;
+   }
+   @xref_table=sort(@xref_table);
+   for( $i=0; $i<@xref_table; $i++ ){
+      print STDERR "$xref_table[$i]\n";
+      print SYSFORM "$xref_table[$i]\n";
+   }
+   close SYSFORM;
+}
+
 #
 # Check delimiters balance without lexical parcing of the string
 #
@@ -458,7 +522,7 @@ sub get_params
       }
 
       if(  exists $options{'d'}  ){
-         if( $debug =~/\d/ ){
+         if( $options{'d'} =~/^\d$/ ){
             $debug=$options{'d'};
          }elsif( $options{'d'} eq '' ){
             $debug=1;
@@ -535,24 +599,24 @@ sub helpme
 }
 
 #
-# Terminate program (variant without mailing)
+# Terminate program (variant without mailing). message_proxix should be established at this point via call to logme.
 #
 sub abend
 {
 my $message;
-my $lineno=$_[0];
-my ($package, $filename, $lineno) = caller;
+my ($package, $filename, $lineno) = caller; # detect called lineno
       if( scalar(@_)==0 ){
-         $message=substr($SCRIPT_NAME,0,4).$lineno."T  ABEND at $lineno. No message was provided. Exiting.";
+         $message=$MessagePrefix.$lineno."T  ABEND at $lineno. No message was provided. Exiting.";
       }else{
-         $message=substr($SCRIPT_NAME,0,4).$lineno."T $_[0]. Exiting ";
+         $message=$MessagePrefix.$lineno."T $_[0]. Exiting ";
       }
 #  Syslog might not be availble
       out($message);
-      #banner('ABEND');
+      #[EMAIL] banner('ABEND');
       die('Internal error');
 
 } # abend
+
 
 #
 # Open log and output the banner; if additional arguments given treat them as subtitles
@@ -564,7 +628,7 @@ sub banner {
 state $logfile;
       if( scalar(@_)<4 && $_[0] eq 'ABEND' ){
          close SYSLOG;
-         #`cat $logfile | mail -s "[ABEND for $HOSTNAME/$SCRIPT_NAME] $_[0] $PrimaryAdmin`;
+         #[EMAIL]`cat $logfile | mail -s "[ABEND for $HOSTNAME/$SCRIPT_NAME] $_[0] $PrimaryAdmin`;
          return;
       }
 #
@@ -638,7 +702,7 @@ state $MessagePrefix='';
          }
          $verbosity1=$_[1];
          $verbosity2=$_[2];
-         $msg_cutlevel1=length("WEST")-$verbosity1-1; # verbosity 3 is max and means 4-3-1 =0 is index correcponfing to  ('W')
+         $msg_cutlevel1=length("WEST")-$verbosity1-1; # verbosity 3 is max and means 4-3-1 =0  -- the index corresponding to code 'W'
          $msg_cutlevel2=length("WEST")-$verbosity2-1; # same for log only (like in MSGLEVEL mainframes ;-)
          return;
       }
@@ -648,13 +712,13 @@ state $MessagePrefix='';
          return;
       }
 #
-# detect callere.
+# detect caller lineno
 #
       my ($package, $filename, $lineno) = caller;
 #
 # Generate diagnostic message from error code, line number and message (optionally timestamp is suffix of error code is T)
 #
-      $message="$MessagePrefix\-$lineno$error_code: $message";
+      $message="$MessagePrefix\-$error_code$lineno: $message";
       my $severity=index("west",lc($error_code));
       if( $severity == -1 ){
          out($message);
