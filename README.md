@@ -1,7 +1,7 @@
 # neatperl
 Prettyprinter for Perl
 
-Neatperl  a simple Perl  prettyprinter based of "fuzzy" determination of nesting level 
+Neatperl  a simple Perl  prettyprinter based on "fuzzy" determination of nesting level 
  
 Nikolai Bezroukov, 2019-2020,   Licensed under Perl Artistic license 
 
