@@ -67,7 +67,7 @@ or
                                                   # backup will be saved in the same directory
 or 
 
-    cat file |  neatperl -p [other_options] > formatted_text # invocation as pipe
+    cat file |  neatperl -p [other_options] > formatted_text # invocation as stage of the pipeline
     
 OPTIONS
 
