@@ -77,9 +77,10 @@ OPTIONS
   
   -f -- "in place" formatting of a file: write formatted text into the same files creating backup
  
-  -p -- work as a pipe
+  -p -- works as a filter in the pipe
   
   -v -- - provides additional warnings about non-balance of quotes and round parentheses. You can specify verbosity level
+ 
         0 -- only serious errors are displayed
         1 -- serious errors and errors are displayed
         2 -- serious errors, errors and warnings are displayed
