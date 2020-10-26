@@ -1,6 +1,6 @@
 #!/usr/bin/perl
-#:: neatperl version 1.00 (Oct 10, 2019) -- Fuzzy prettyprint for Perl scripts
-#:: Nikolai Bezroukov, 2019.
+#:: neatperl -- Fuzzy prettyprint for Perl scripts
+#:: Nikolai Bezroukov, 2019-2020.
 #:: Licensed under Perl Artistic license
 #::
 #:: This is a fuzzy prettyprinter in a sense that the netsting level is determined using heuristic methods:
@@ -48,8 +48,8 @@
 # 0.72  2019/10/04  BEZROUN    autocommit made more flexible: commits only if the source code changed and debug level is non zero
 # 0.80  2019/10/07  BEZROUN    Simple code stats added to summary. Step toward producing  complexity metric
 # 0.81  2019/10/08  BEZROUN    Some refactoring to reduce maximum nesting level
-# 1.00  2019/10/09  BEZROUN    Testing completed and was sucessful.
-# 1.10  2019/10/10  BEZROUN    allowed tail commments like:  }else{ #This is abad  style of commenting but it happened
+# 1.00  2019/10/09  BEZROUN    Testing completed
+# 1.10  2019/10/10  BEZROUN    Tail commments after { processed OK :  }else{ # This is a bad style of commenting but it happened
 # 1.20  2019/10/14  BEZROUN    Simple XREF table is added -- option -X
 # 1.30  2020/10/26  BEZROUN    A couple of minor changes
 #START ======================================================================================================================
