@@ -3,7 +3,7 @@ Prettyprinter for Perl
 
 Neatperl  a simple Perl  prettyprinter based of "fuzzy" determination of nesting level 
  
-Nikolai Bezroukov, 2019,   Licensed under Perl Artistic license 
+Nikolai Bezroukov, 2019-2020,   Licensed under Perl Artistic license 
 
 For more complete and, most probably, more current info http://www.softpanorama.org/Utilities/Beautifiers/neatperl.shtml
 
